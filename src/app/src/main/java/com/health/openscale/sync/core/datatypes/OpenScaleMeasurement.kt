@@ -28,5 +28,7 @@ data class OpenScaleMeasurement(
     val weight: Float,
     val fat: Float,
     val water: Float,
-    val muscle: Float
+    val muscle: Float,
+    val bone: Float,
+    val bmr: Float
 )

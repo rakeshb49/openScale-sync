@@ -18,8 +18,11 @@
 package com.health.openscale.sync.core.sync
 
 import androidx.health.connect.client.HealthConnectClient
+import androidx.health.connect.client.records.BasalMetabolicRateRecord
 import androidx.health.connect.client.records.BodyFatRecord
 import androidx.health.connect.client.records.BodyWaterMassRecord
+import androidx.health.connect.client.records.BoneMassRecord
+import androidx.health.connect.client.records.LeanBodyMassRecord
 import androidx.health.connect.client.records.Record
 import androidx.health.connect.client.records.WeightRecord
 import androidx.health.connect.client.records.metadata.DataOrigin
@@ -29,6 +32,7 @@ import androidx.health.connect.client.response.ReadRecordsResponse
 import androidx.health.connect.client.time.TimeRangeFilter
 import androidx.health.connect.client.units.Mass
 import androidx.health.connect.client.units.Percentage
+import androidx.health.connect.client.units.Power
 import com.health.openscale.sync.core.datatypes.OpenScaleMeasurement
 import com.health.openscale.sync.core.service.SyncResult
 import java.time.Instant
@@ -49,6 +53,18 @@ class HealthConnectSync(private var healthConnectClient: HealthConnectClient) : 
 
             val fatRecord = buildFatRecord(measurement)
             records.add(fatRecord)
+
+            if (measurement.muscle > 0f) {
+                records.add(buildMuscleRecord(measurement))
+            }
+
+            if (measurement.bone > 0f) {
+                records.add(buildBoneRecord(measurement))
+            }
+
+            if (measurement.bmr > 0f) {
+                records.add(buildBmrRecord(measurement))
+            }
         }
 
         try {
@@ -70,6 +86,18 @@ class HealthConnectSync(private var healthConnectClient: HealthConnectClient) : 
 
         val fatRecord = buildFatRecord(measurement)
         records.add(fatRecord)
+
+        if (measurement.muscle > 0f) {
+            records.add(buildMuscleRecord(measurement))
+        }
+
+        if (measurement.bone > 0f) {
+            records.add(buildBoneRecord(measurement))
+        }
+
+        if (measurement.bmr > 0f) {
+            records.add(buildBmrRecord(measurement))
+        }
 
         try {
             healthConnectClient.insertRecords(records)
@@ -99,6 +127,18 @@ class HealthConnectSync(private var healthConnectClient: HealthConnectClient) : 
                     BodyWaterMassRecord::class,
                     timeRange
                 )
+            healthConnectClient.deleteRecords(
+                    LeanBodyMassRecord::class,
+                    timeRange
+                )
+            healthConnectClient.deleteRecords(
+                    BoneMassRecord::class,
+                    timeRange
+                )
+            healthConnectClient.deleteRecords(
+                    BasalMetabolicRateRecord::class,
+                    timeRange
+                )
 
             return SyncResult.Success(Unit)
         } catch (e: Exception) {
@@ -126,6 +166,18 @@ class HealthConnectSync(private var healthConnectClient: HealthConnectClient) : 
                 BodyWaterMassRecord::class,
                 timeRange
             )
+            healthConnectClient.deleteRecords(
+                LeanBodyMassRecord::class,
+                timeRange
+            )
+            healthConnectClient.deleteRecords(
+                BoneMassRecord::class,
+                timeRange
+            )
+            healthConnectClient.deleteRecords(
+                BasalMetabolicRateRecord::class,
+                timeRange
+            )
 
             return SyncResult.Success(Unit)
         } catch (e: Exception) {
@@ -140,6 +192,9 @@ class HealthConnectSync(private var healthConnectClient: HealthConnectClient) : 
             val weightRecord = readWeightRecord(measurement)
             val waterRecord = readWaterRecord(measurement)
             val fatRecord = readFatRecord(measurement)
+            val muscleRecord = readMuscleRecord(measurement)
+            val boneRecord = readBoneRecord(measurement)
+            val bmrRecord = readBmrRecord(measurement)
 
             if (weightRecord != null) {
                 records.add(buildWeightRecord(measurement))
@@ -149,6 +204,15 @@ class HealthConnectSync(private var healthConnectClient: HealthConnectClient) : 
             }
             if (fatRecord != null) {
                 records.add(buildFatRecord(measurement))
+            }
+            if (muscleRecord != null && measurement.muscle > 0f) {
+                records.add(buildMuscleRecord(measurement))
+            }
+            if (boneRecord != null && measurement.bone > 0f) {
+                records.add(buildBoneRecord(measurement))
+            }
+            if (bmrRecord != null && measurement.bmr > 0f) {
+                records.add(buildBmrRecord(measurement))
             }
 
             if (records.isNotEmpty()) {
@@ -173,6 +237,18 @@ class HealthConnectSync(private var healthConnectClient: HealthConnectClient) : 
 
     private suspend fun readFatRecord(measurement: OpenScaleMeasurement): BodyFatRecord? {
         return readRecord(measurement,BodyFatRecord::class)
+    }
+
+    private suspend fun readMuscleRecord(measurement: OpenScaleMeasurement): LeanBodyMassRecord? {
+        return readRecord(measurement, LeanBodyMassRecord::class)
+    }
+
+    private suspend fun readBoneRecord(measurement: OpenScaleMeasurement): BoneMassRecord? {
+        return readRecord(measurement, BoneMassRecord::class)
+    }
+
+    private suspend fun readBmrRecord(measurement: OpenScaleMeasurement): BasalMetabolicRateRecord? {
+        return readRecord(measurement, BasalMetabolicRateRecord::class)
     }
 
     private suspend fun <T : Record> readRecord(
@@ -230,6 +306,42 @@ class HealthConnectSync(private var healthConnectClient: HealthConnectClient) : 
             zoneOffset = zoneOffset,
             percentage = Percentage(measurement.fat.toDouble()),
             metadata = buildMetadata(measurement, "fat")
+        )
+    }
+
+    private fun buildMuscleRecord(measurement: OpenScaleMeasurement): LeanBodyMassRecord {
+        val measurementInstant = measurement.date.toInstant()
+        val zoneOffset = ZoneId.systemDefault().rules.getOffset(measurementInstant)
+
+        return LeanBodyMassRecord(
+            time = measurementInstant,
+            zoneOffset = zoneOffset,
+            mass = Mass.kilograms(measurement.weight.toDouble() * measurement.muscle.toDouble() / 100),
+            metadata = buildMetadata(measurement, "muscle")
+        )
+    }
+
+    private fun buildBoneRecord(measurement: OpenScaleMeasurement): BoneMassRecord {
+        val measurementInstant = measurement.date.toInstant()
+        val zoneOffset = ZoneId.systemDefault().rules.getOffset(measurementInstant)
+
+        return BoneMassRecord(
+            time = measurementInstant,
+            zoneOffset = zoneOffset,
+            mass = Mass.kilograms(measurement.bone.toDouble()),
+            metadata = buildMetadata(measurement, "bone")
+        )
+    }
+
+    private fun buildBmrRecord(measurement: OpenScaleMeasurement): BasalMetabolicRateRecord {
+        val measurementInstant = measurement.date.toInstant()
+        val zoneOffset = ZoneId.systemDefault().rules.getOffset(measurementInstant)
+
+        return BasalMetabolicRateRecord(
+            time = measurementInstant,
+            zoneOffset = zoneOffset,
+            basalMetabolicRate = Power.kilocaloriesPerDay(measurement.bmr.toDouble()),
+            metadata = buildMetadata(measurement, "bmr")
         )
     }
 }

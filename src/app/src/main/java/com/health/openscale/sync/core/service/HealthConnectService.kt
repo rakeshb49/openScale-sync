@@ -37,7 +37,10 @@ import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.BodyFatRecord
+import androidx.health.connect.client.records.BasalMetabolicRateRecord
 import androidx.health.connect.client.records.BodyWaterMassRecord
+import androidx.health.connect.client.records.BoneMassRecord
+import androidx.health.connect.client.records.LeanBodyMassRecord
 import androidx.health.connect.client.records.WeightRecord
 import androidx.lifecycle.coroutineScope
 import androidx.lifecycle.lifecycleScope
@@ -62,6 +65,9 @@ class HealthConnectService(
         HealthPermission.getWritePermission(WeightRecord::class),
         HealthPermission.getWritePermission(BodyWaterMassRecord::class),
         HealthPermission.getWritePermission(BodyFatRecord::class),
+        HealthPermission.getWritePermission(LeanBodyMassRecord::class),
+        HealthPermission.getWritePermission(BoneMassRecord::class),
+        HealthPermission.getWritePermission(BasalMetabolicRateRecord::class)
     )
 
     private val healthConnectPermissionContract =
