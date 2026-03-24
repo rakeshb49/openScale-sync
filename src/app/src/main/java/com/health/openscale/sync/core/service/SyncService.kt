@@ -122,16 +122,18 @@ class SyncService : Service() {
                     val fat    = roundFloat(intent?.getFloatExtra("fat", 0.0f) ?: 0f)
                     val water  = roundFloat(intent?.getFloatExtra("water", 0.0f) ?: 0f)
                     val muscle = roundFloat(intent?.getFloatExtra("muscle", 0.0f) ?: 0f)
+                    val bone   = roundFloat(intent?.getFloatExtra("bone", 0.0f) ?: 0f)
+                    val bmr    = roundFloat(intent?.getFloatExtra("bmr", 0.0f) ?: 0f)
                     val date   = Date(intent?.getLongExtra("date", 0L) ?: 0L)
 
                     Timber.d(
-                        "SyncService %s id=%d userId=%d date=%s w=%.2f f=%.2f wa=%.2f m=%.2f",
-                        mode, id, userId, date, weight, fat, water, muscle
+                        "SyncService %s id=%d userId=%d date=%s w=%.2f f=%.2f wa=%.2f m=%.2f b=%.2f bmr=%.2f",
+                        mode, id, userId, date, weight, fat, water, muscle, bone, bmr
                     )
 
                     if (userId == openScaleUserId) {
                         CoroutineScope(Dispatchers.Main).launch {
-                            val m = OpenScaleMeasurement(id, userId, date, weight, fat, water, muscle)
+                            val m = OpenScaleMeasurement(id, userId, date, weight, fat, water, muscle, bone, bmr)
                             val t = System.nanoTime()
                             val res = runCatching {
                                 if (mode == "insert") syncService.insert(m) else syncService.update(m)

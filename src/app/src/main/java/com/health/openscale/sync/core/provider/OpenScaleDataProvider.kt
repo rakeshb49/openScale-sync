@@ -150,6 +150,8 @@ class OpenScaleDataProvider(
                 var fat: Float? = null
                 var water: Float? = null
                 var muscle: Float? = null
+                var bone: Float? = null
+                var bmr: Float? = null
                 val userId = openScaleUser.id
 
                 for (i in 0 until record.columnCount) {
@@ -177,6 +179,14 @@ class OpenScaleDataProvider(
                     if (record.getColumnName(i).equals("muscle")) {
                         muscle = roundFloat(record.getFloat(i))
                     }
+
+                    if (record.getColumnName(i).equals("bone")) {
+                        bone = roundFloat(record.getFloat(i))
+                    }
+
+                    if (record.getColumnName(i).equals("bmr")) {
+                        bmr = roundFloat(record.getFloat(i))
+                    }
                 }
 
                 if (id != null && dateTime != null && weight != null && fat != null && water != null && muscle != null) {
@@ -187,7 +197,9 @@ class OpenScaleDataProvider(
                         weight,
                         fat,
                         water,
-                        muscle
+                        muscle,
+                        bone ?: 0.0f,
+                        bmr ?: 0.0f
                     )
 
                     measurements.add(measurement)
